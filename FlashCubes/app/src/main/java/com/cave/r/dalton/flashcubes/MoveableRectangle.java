@@ -3,20 +3,30 @@ package com.cave.r.dalton.flashcubes;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.util.Log;
 import android.view.MotionEvent;
+
+import java.util.Random;
 
 /**
  * Created by dalton on 3/8/16.
  */
 public class MoveableRectangle {
+
+    private static final String TAG = MoveableRectangle.class.getSimpleName();
+
     private static final int TEXT_SIZE = 50;
     private static final int OFFSET_PER_PIXEL = 10;
-    private static boolean STRICT_COLLISION_ENABLED = true;
+
     private int x, y, width, height, textXOffset, textYOffset;
     private boolean pickedUp;
     private int color;
     private String display;
     private Status state;
+    private int touching;
+    private int randomNumber;
+    private Random generator;
+
 
     public MoveableRectangle(int x, int y, int width, int height){
         this.x = x;
@@ -28,6 +38,7 @@ public class MoveableRectangle {
         color = Color.WHITE;
         setDisplay("?");
         state = Status.START;
+        randomNumber = -1;
     }
 
     public int getX(){
@@ -114,9 +125,25 @@ public class MoveableRectangle {
         this.state = state;
     }
 
+    public int getTouching(){
+        return touching;
+    }
+
+    public void setTouching(int touching){
+        this.touching = touching;
+    }
+
+    public int getRandomNumber(){
+        return randomNumber;
+    }
+
+    public void setRandomNumber(int randomNumber){
+        this.randomNumber = randomNumber;
+    }
+
     public boolean contains(int xCo, int yCo){
-        if (xCo > (x - (width/2)) && xCo < (x + (width /2))){
-            if(yCo > (y - (height/2)) && yCo < (y + (height/2))){
+        if (xCo >= (x - (width/2)) && xCo <= (x + (width /2))){
+            if(yCo >= (y - (height/2)) && yCo <= (y + (height/2))){
                 return true;
             }
         }
@@ -142,6 +169,26 @@ public class MoveableRectangle {
 
     public int getBottom(){
         return (y+height/2);
+    }
+
+    public void checkForCollisions(MoveableRectangle[] boxes, int thisBox){
+        touching = 0;
+        for (int i = 0; i < boxes.length; i++){
+            if (i == thisBox) continue;
+            if(collision(this, boxes[i])) touching++;
+        }
+    }
+
+    public void checkGenerate(){
+        if(state == Status.GENERATING) return;
+
+        if (touching == 0){
+            state = Status.GENERATING;
+            generator = new Random();
+            randomNumber = generator.nextInt(6) + 1;
+            display = randomNumber + "";
+            Log.d(TAG, "Cube changing to generating state");
+        }
     }
 
     public static boolean collision(MoveableRectangle moving, MoveableRectangle other){

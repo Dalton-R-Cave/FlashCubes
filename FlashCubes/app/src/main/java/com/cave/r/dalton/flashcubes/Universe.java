@@ -107,6 +107,38 @@ public class Universe extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     public void update(){
-        //do nothing
+
+        //Check to see if the state of the universe has changed
+        checkUniverse();
+
+        //Check if touching neighbors
+        for(int i = 0; i < NUM_OF_BOXES; i++){
+            boxes[i].checkForCollisions(boxes, i);
+        }
+
+        //Use this information to generate if needed
+        if(universeState == Status.START) {
+            for (int i = 0; i < NUM_OF_BOXES; i++) {
+                boxes[i].checkGenerate();
+            }
+        }
+    }
+
+    public void checkUniverse(){
+        Status check = boxes[0].getState();
+        if (check == Status.START) return;
+        for(int i = 1; i< NUM_OF_BOXES; i++){
+            if(boxes[i].getState() != check) return;
+        }
+        if(universeState == Status.START){
+            universeState = Status.GENERATING;
+            Log.d(TAG, "Universe is generating!");
+        }
+        else if (universeState == Status.GENERATING){
+            universeState = Status.SCORING;
+        }
+        else{
+            universeState = Status.DONE;
+        }
     }
 }
