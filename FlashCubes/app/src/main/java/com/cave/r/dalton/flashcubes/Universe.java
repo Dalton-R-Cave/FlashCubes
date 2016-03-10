@@ -1,91 +1,112 @@
 package com.cave.r.dalton.flashcubes;
 
+import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 /**
  * Created by dalton on 3/7/16.
  */
-public class Universe extends Thread {
+public class Universe extends SurfaceView implements SurfaceHolder.Callback {
+
+    private static final int NUM_OF_BOXES = 5;
 
     private static final String TAG = Universe.class.getSimpleName();
+    private MainThread mainThread;
+    private MoveableRectangle boxes[];
 
-    //FRAMERATE VARIABLES:
-    private final static int MAX_FPS = 30; //desired frames per second
-    private final static int MAX_FRAME_SKIPS = 5; //maximum number of frames to be skipped
-    private final static int FRAME_PERIOD = 1000/MAX_FPS; // the frame period
+    private Status universeState;
 
-    //DISPLAY VARIABLES:
-    private SurfaceHolder surfaceHolder; //Surface holder that can access the physical surface
-    private MainPanel mainPanel; //The actual view that handles inputs and draws to the surface
+    private static final int BOX_WIDTH = 200;
+    private static final int BOX_HEIGHT = 200;
 
-    //FLAGS:
-    private boolean running; //flag to hold the game state
+    public Universe(Context context){
+        super(context);
+        universeState = Status.START;
+        boxes = new MoveableRectangle[NUM_OF_BOXES];
+        initializeBoxes();
+        setCubeDisplay("START");
+        getHolder().addCallback(this);
+        mainThread = new MainThread(getHolder(), this);
+        setFocusable(true);
+    }
 
-    public Universe(SurfaceHolder surfaceHolder, MainPanel mainPanel){
-        super();
-        this.surfaceHolder = surfaceHolder;
-        this.mainPanel = mainPanel;
+    public void initializeBoxes(){
+        for (int i = 0; i < NUM_OF_BOXES; i++){
+            boxes[i] = new MoveableRectangle(500 + (i*BOX_WIDTH), 600, BOX_WIDTH, BOX_HEIGHT);
+        }
+    }
+
+    public void setCubeDisplay(String toDisplay){
+        int length = toDisplay.length();
+        int currentIndex = 0;
+        int lettersPerBox = (int)(Math.floor(length / NUM_OF_BOXES));
+        for (int i = 0; i < NUM_OF_BOXES; i++){
+            if(i==NUM_OF_BOXES - 1){
+                boxes[i].setDisplay(toDisplay.substring(currentIndex, length - 1));
+            }
+            boxes[i].setDisplay(toDisplay.substring(currentIndex, currentIndex += lettersPerBox));
+        }
     }
 
     @Override
-    public void run(){
-        Canvas canvas;
-        Log.d(TAG, "Starting logic loop");
+    public void surfaceCreated(SurfaceHolder holder) {
+        mainThread.setRunning(true);
+        mainThread.start();
 
-        //for fps management
-        long beginTime; //the time when the cycle began
-        long timeDiff; //the time it took for the cycle to execute
-        int sleepTime = 0; //ms to sleep(< 0 if we're behind)
-        int framesSkipped; //number of frames being skipped
+    }
 
-        while (running){
-            canvas = null;
-            //try locking the canvas for exclusive pixel editing in the surface
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        //do nothing
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.d(TAG, "Surface is being destroyed");
+
+        boolean retry = true;
+        while(retry){
             try{
-                canvas = this.surfaceHolder.lockCanvas();
-                synchronized (surfaceHolder){
-                    beginTime = System.currentTimeMillis();
-                    framesSkipped = 0; //reset the frames skipped
-                    this.mainPanel.update(); //update game state
-                    this.mainPanel.render(canvas); //render state to the screen
-                    timeDiff = System.currentTimeMillis() - beginTime;
-                    sleepTime = (int)(FRAME_PERIOD - timeDiff); //calculate sleep time
-
-                    if (sleepTime > 0){ //We are ok
-                        try{
-                            //send the thread to sleep to save battery
-                            Thread.sleep(sleepTime);
-                        }
-                        catch(InterruptedException e){
-                            //do nothing for now
-                        }
-                    }
-
-                    while(sleepTime < 0 && framesSkipped < MAX_FRAME_SKIPS){ //We need to catch up
-                        this.mainPanel.update(); //update without rendering
-                        sleepTime += FRAME_PERIOD;
-                        framesSkipped++;
-                    }
-
-
-                }
+                mainThread.join();
+                retry = false;
             }
-            finally{
-                //in case of n exception the surface is not left in an inconsistent state
-                if (canvas != null){
-                    surfaceHolder.unlockCanvasAndPost(canvas);
-                }
+            catch(InterruptedException e){
+                //retry shutting down thread
             }
         }
     }
 
-    public boolean getRunning(){
-        return running;
+    @Override
+    public boolean onTouchEvent(MotionEvent event){
+        for(int i = 0; i < NUM_OF_BOXES; i++){
+            boxes[i].handleTouch(event);
+        }
+
+        return true;
     }
 
-    public void setRunning(boolean running){
-        this.running = running;
+    public void render(Canvas canvas){
+
+        //Draw the background
+        Paint paint = new Paint();
+        paint.setColor(Color.LTGRAY);
+        if (paint != null) {
+            canvas.drawPaint(paint);
+        }
+
+        //Draw the Boxes
+        for(int i = 0; i < NUM_OF_BOXES; i++){
+            boxes[i].draw(canvas);
+        }
+    }
+
+    public void update(){
+        //do nothing
     }
 }

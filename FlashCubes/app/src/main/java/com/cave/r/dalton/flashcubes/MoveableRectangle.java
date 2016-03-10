@@ -9,19 +9,25 @@ import android.view.MotionEvent;
  * Created by dalton on 3/8/16.
  */
 public class MoveableRectangle {
-    private int x, y, width, height;
+    private static final int TEXT_SIZE = 50;
+    private static final int OFFSET_PER_PIXEL = 10;
+    private static boolean STRICT_COLLISION_ENABLED = true;
+    private int x, y, width, height, textXOffset, textYOffset;
     private boolean pickedUp;
     private int color;
     private String display;
+    private Status state;
 
     public MoveableRectangle(int x, int y, int width, int height){
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        textYOffset = TEXT_SIZE / 2;
         pickedUp = false;
         color = Color.WHITE;
-        display = "?";
+        setDisplay("?");
+        state = Status.START;
     }
 
     public int getX(){
@@ -56,6 +62,22 @@ public class MoveableRectangle {
         this.height = height;
     }
 
+    public int getTextXOffset(){
+        return textXOffset;
+    }
+
+    public void setTextXOffset(int textXOffset){
+        this.textXOffset = textXOffset;
+    }
+
+    public int getTextYOffset(){
+        return textYOffset;
+    }
+
+    public void setTextYOffset(int textYOffset){
+        this.textYOffset = textYOffset;
+    }
+
     public boolean getPickedUp(){
         return pickedUp;
     }
@@ -78,6 +100,18 @@ public class MoveableRectangle {
 
     public void setDisplay(String display){
         this.display = display;
+        if(display.length() == 1)
+            textXOffset = 1;
+        else
+            textXOffset = display.length()/2;
+    }
+
+    public Status getState(){
+        return state;
+    }
+
+    public void setState(Status state){
+        this.state = state;
     }
 
     public boolean contains(int xCo, int yCo){
@@ -125,11 +159,11 @@ public class MoveableRectangle {
     public void draw(Canvas canvas){
         Paint paint = new Paint();
         paint.setColor(color);
-        paint.setTextSize(50);
+        paint.setTextSize(TEXT_SIZE);
         canvas.drawRect(getLeft(),getTop(),getRight(),getBottom(), paint);
         paint.setColor(Color.WHITE);
         if(color == Color.WHITE) paint.setColor(Color.BLACK);
-        canvas.drawText(display,x-10,y+25,paint);
+        canvas.drawText(display,x-(textXOffset * OFFSET_PER_PIXEL),y+textYOffset,paint);
     }
 
     public void handleTouch(MotionEvent event){

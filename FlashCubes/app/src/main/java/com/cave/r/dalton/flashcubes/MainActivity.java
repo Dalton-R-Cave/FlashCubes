@@ -11,7 +11,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(new MainPanel(this, 5));
+        setContentView(new Universe(this));
         Log.d(TAG, "View Added");
     }
 
