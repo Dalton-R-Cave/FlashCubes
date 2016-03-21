@@ -9,6 +9,9 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 /**
  * Created by dalton on 3/7/16.
  */
@@ -122,11 +125,16 @@ public class Universe extends SurfaceView implements SurfaceHolder.Callback {
                 boxes[i].checkGenerate();
             }
         }
+        else if (universeState == Status.GENERATING){
+            for (int i = 0; i < NUM_OF_BOXES; i++){
+                boxes[i].checkScoring();
+            }
+        }
     }
 
     public void checkUniverse(){
         Status check = boxes[0].getState();
-        if (check == Status.START) return;
+        if (check == universeState) return;
         for(int i = 1; i< NUM_OF_BOXES; i++){
             if(boxes[i].getState() != check) return;
         }
@@ -136,9 +144,71 @@ public class Universe extends SurfaceView implements SurfaceHolder.Callback {
         }
         else if (universeState == Status.GENERATING){
             universeState = Status.SCORING;
+            Log.d(TAG, "Universe is scoring!");
+            for (int i = 0; i < NUM_OF_BOXES; i++){
+                boxes[i].setState(Status.DONE);
+            }
         }
         else{
-            universeState = Status.DONE;
+            endOfTimes();
         }
     }
+
+    public void endOfTimes(){
+        //find order of cubes
+        determineIndices();
+        //display "Done" + total
+        displayFinal();
+        //Listen for shake
+    }
+
+    public void displayFinal(){
+        String DONE = "DONE";
+        int total = countTotal();
+        for (int i = 0; i < NUM_OF_BOXES; i++){
+            if (boxes[i].getIndex() == NUM_OF_BOXES -1){
+                boxes[i].setDisplay(total + "");
+                continue;
+            }
+            else{
+                boxes[i].setDisplay(DONE.substring(boxes[i].getIndex(), boxes[i].getIndex() + 1));
+            }
+        }
+    }
+
+    public int countTotal(){
+        int total = 0;
+        for(int i = 0; i < NUM_OF_BOXES; i++){
+            total += boxes[i].getRandomNumber();
+        }
+
+        return total;
+    }
+
+
+    public void determineIndices(){
+        ArrayList<Integer> Xs = new ArrayList<>();
+        for (int i = 0; i < NUM_OF_BOXES; i++){
+            Xs.add(boxes[i].getX());
+        }
+        Collections.sort(Xs);
+        for(int i = 0; i < NUM_OF_BOXES; i++){
+            for (int j = 0; j < NUM_OF_BOXES;j++){
+                if (Xs.get(i) == boxes[j].getX()) boxes[j].setIndex(i);
+            }
+        }
+
+
+    }
+
+
+    public void checkLeft(MoveableRectangle box){
+        if (box.getX() < box.touchCallBack.get(0).getX()) box.setIndex(0);
+    }
+
+    public void checkRight(MoveableRectangle box){
+        if (box.getX() > box.touchCallBack.get(0).getX()) box.setIndex(NUM_OF_BOXES);
+    }
+
+
 }

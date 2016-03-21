@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.util.Log;
 import android.view.MotionEvent;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -23,8 +24,12 @@ public class MoveableRectangle {
     private int color;
     private String display;
     private Status state;
-    private int touching;
+    private int touching; //How many rectangles it is in contact with
+    private int lastTouch;
+    public ArrayList<MoveableRectangle> touchCallBack; //An array of all the of currently touching rectangles
     private int randomNumber;
+    private int total;
+    private int index;
     private Random generator;
 
 
@@ -39,6 +44,18 @@ public class MoveableRectangle {
         setDisplay("?");
         state = Status.START;
         randomNumber = -1;
+        index = -1;
+        total = 0;
+        lastTouch = 0;
+        touchCallBack = new ArrayList<>();
+    }
+
+    public int getIndex(){
+        return index;
+    }
+
+    public void setIndex(int index){
+        this.index = index;
     }
 
     public int getX(){
@@ -142,8 +159,11 @@ public class MoveableRectangle {
     }
 
     public boolean contains(int xCo, int yCo){
-        if (xCo >= (x - (width/2)) && xCo <= (x + (width /2))){
-            if(yCo >= (y - (height/2)) && yCo <= (y + (height/2))){
+        if (xCo >= (x - (width/2)) && xCo <= (x + (width /2))) {
+            if (yCo >= (y - (height / 2)) && yCo <= (y + (height / 2))) {
+                if (xCo < x) {
+                } else if (xCo > x) {
+                }
                 return true;
             }
         }
@@ -175,7 +195,15 @@ public class MoveableRectangle {
         touching = 0;
         for (int i = 0; i < boxes.length; i++){
             if (i == thisBox) continue;
-            if(collision(this, boxes[i])) touching++;
+            else if(collision(this, boxes[i])){
+                touching++;
+                if (!touchCallBack.contains(boxes[i])) {
+                    touchCallBack.add(boxes[i]);
+                }
+            }
+            else{
+                touchCallBack.remove(boxes[i]);
+            }
         }
     }
 
@@ -188,6 +216,30 @@ public class MoveableRectangle {
             randomNumber = generator.nextInt(6) + 1;
             display = randomNumber + "";
             Log.d(TAG, "Cube changing to generating state");
+        }
+    }
+
+    public void checkScoring(){
+
+        if (touching > 0){
+            if(touching == lastTouch) return;
+            lastTouch = touching;
+            total = 0;
+            for (int i = 0; i < touchCallBack.size(); i++){
+                Log.d(TAG,touchCallBack.get(i).getRandomNumber() + "");
+                total += touchCallBack.get(i).getRandomNumber();
+            }
+            total += this.getRandomNumber();
+            state = Status.SCORING;
+
+            display = total + "";
+            Log.d(TAG, "Cubes starting to add");
+        }
+        else{
+            lastTouch = 0;
+            state = Status.GENERATING;
+            total = 0;
+            display = randomNumber + "";
         }
     }
 
@@ -214,6 +266,7 @@ public class MoveableRectangle {
     }
 
     public void handleTouch(MotionEvent event){
+        if (state == Status.DONE) return;
         int eX = (int)event.getX();
         int eY = (int)event.getY();
 
@@ -232,6 +285,22 @@ public class MoveableRectangle {
             if(pickedUp) setColor(Color.WHITE);
             pickedUp = false;
         }
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder builder = new StringBuilder();
+        builder.append("State: " + state + ", Random Number: " + randomNumber);
+        return builder.toString();
+    }
+
+    //Return 0 if same
+    //Return -1 if this is to the left
+    //Return 1 if this is to the right
+    public int compareX(MoveableRectangle other){
+        if (other.getX() > this.getX()) return -1;
+        else if (other.getX() < this.getX()) return 1;
+        else return 0;
     }
 
 }
